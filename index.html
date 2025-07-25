@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Law Timesharing Calendar</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Section 1: Top section (15% height) -->
+        <div class="section1">
+            <!-- A1: Case name input -->
+            <input type="text" class="case-input" id="caseName" placeholder="Enter case name (e.g., Smith v. Jones)" value="Smith v. Jones">
+            
+            <!-- A2: Overnight stats -->
+            <div class="overnight-stats" id="overnightStats">
+                Calculating overnight percentages...
+            </div>
+            
+            <!-- B1: Schedule Start Date label -->
+            <div class="section1-date-label">
+                📅 Schedule Start Date
+            </div>
+            
+            <!-- B2: Date picker -->
+            <input type="date" class="start-date-input" id="startDate">
+            
+            <!-- C1: Save/Load buttons -->
+            <div class="section1-buttons">
+                <button class="section1-button" id="saveCalendar">Save Calendar</button>
+                <button class="section1-button" id="loadCalendar">Load Calendar</button>
+            </div>
+            
+            <!-- Hidden file input for loading -->
+            <input type="file" class="hidden-file-input" id="fileInput" accept=".json">
+        </div>
+
+        <!-- Sections 2 & 3: Main content area (85% height) -->
+        <div class="sections-container">
+            <!-- Section 2: Left sidebar -->
+            <div class="sidebar">
+                <div class="tabs-container">
+                    <div class="tab-nav">
+                        <!-- Large tab -->
+                        <button class="tab-button tab-large active" data-tab="regular">📋 Regular Schedule</button>
+                        
+                        <!-- Medium tabs -->
+                        <button class="tab-button tab-medium" data-tab="spring">🌸 Spring Break</button>
+                        <button class="tab-button tab-medium" data-tab="thanksgiving">🦃 Thanksgiving Break</button>
+                        <button class="tab-button tab-medium" data-tab="christmas">🎄 Christmas Break</button>
+                        <button class="tab-button tab-medium" data-tab="summer">☀️ Summer Break</button>
+                        
+                        <!-- Small tabs -->
+                        <button class="tab-button tab-small" data-tab="mothers">👩 Mother's Day</button>
+                        <button class="tab-button tab-small" data-tab="fathers">👨 Father's Day</button>
+                        <button class="tab-button tab-small" data-tab="easter">🐰 Easter</button>
+                        <button class="tab-button tab-small" data-tab="memorial">🎖️ Memorial Day</button>
+                        <button class="tab-button tab-small" data-tab="independence">🎆 Independence Day</button>
+                        <button class="tab-button tab-small" data-tab="custom" id="addCustomHoliday">➕ Add Holiday</button>
+                    </div>
+
+                    <!-- Tab Contents -->
+                    <div class="tab-content active" id="tab-regular">
+                        <div class="section-title">📋 Regular Schedule (2-Week Rotation)</div>
+                        <div class="schedule-grid" id="scheduleGrid">
+                            <!-- Schedule rows will be generated here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-spring">
+                        <div class="section-title">🌸 Spring Break</div>
+                        <div id="springBreakConfig">
+                            <!-- Spring break configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-thanksgiving">
+                        <div class="section-title">🦃 Thanksgiving Break</div>
+                        <div id="thanksgivingBreakConfig">
+                            <!-- Thanksgiving break configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-christmas">
+                        <div class="section-title">🎄 Christmas Break</div>
+                        <div id="christmasBreakConfig">
+                            <!-- Christmas break configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-summer">
+                        <div class="section-title">☀️ Summer Break</div>
+                        <div id="summerConfig">
+                            <!-- Summer break configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-mothers">
+                        <div class="section-title">👩 Mother's Day Weekend</div>
+                        <div id="mothersConfig">
+                            <!-- Mother's Day configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-fathers">
+                        <div class="section-title">👨 Father's Day Weekend</div>
+                        <div id="fathersConfig">
+                            <!-- Father's Day configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-easter">
+                        <div class="section-title">🐰 Easter Weekend</div>
+                        <div id="easterConfig">
+                            <!-- Easter configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-memorial">
+                        <div class="section-title">🇺🇸 Memorial Day Weekend</div>
+                        <div id="memorialConfig">
+                            <!-- Memorial Day configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-independence">
+                        <div class="section-title">🎆 Independence Day</div>
+                        <div id="independenceConfig">
+                            <!-- Independence Day configuration will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-custom">
+                        <div class="section-title">➕ Custom Holidays</div>
+                        <div id="customHolidaysList">
+                            <!-- Custom holidays will be listed here -->
+                        </div>
+                        <button id="addNewHolidayBtn" class="section1-button" style="margin-top: 15px;">Add New Holiday</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 3: Right main content -->
+            <div class="main-content">
+                <div id="calendarContainer">
+                    <!-- Calendar months will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating back to top buttons -->
+    <button class="back-to-top back-to-top-left" id="backToTopLeft" title="Back to top">⇈</button>
+    <button class="back-to-top back-to-top-right" id="backToTopRight" title="Back to top">⇈</button>
+
+    <!-- Custom Holiday Modal -->
+    <div id="customHolidayModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Holiday</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Modal content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button id="saveCustomHoliday" class="section1-button">Save Holiday</button>
+                <button id="deleteCustomHoliday" class="section1-button" style="background: #dc2626; border-color: #dc2626; display: none;">Delete Holiday</button>
+                <button id="cancelCustomHoliday" class="section1-button" style="background: #6b7280; border-color: #6b7280;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load JavaScript files -->
+    <script src="date-utils.js"></script>
+    <script src="holidays/spring-break.js"></script>
+    <script src="holidays/thanksgiving-break.js"></script>
+    <script src="holidays/christmas-break.js"></script>
+    <script src="holidays/easter-break.js"></script>
+    <script src="holidays/memorial-day-break.js"></script>
+	<script src="holidays/mothers-day.js"></script>
+	<script src="holidays/fathers-day.js"></script>
+	<script src="holidays/independence-day.js"></script>
+	<script src="holidays/summer-break.js"></script>
+    <script src="holiday-manager.js"></script>
+	<script src="holidays/custom-holiday.js"></script>
+	<script src="holidays/custom-holiday-manager.js"></script>
+    <script src="calendar-renderer.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
