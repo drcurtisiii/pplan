@@ -716,13 +716,15 @@ class SummerBreak {
             };
         }
 
-        // Handle weekly exchanges (every Sunday at start time, except start date)
-        if (date.getDay() === 0 && daysSinceStart > 0) { // Sunday and not start date
-            // The parent we're transitioning TO is determined by the week number
-            const transitionToParent = weekNumber % 2 === 0 ? startingParent : 
-                                      (startingParent === 'Father' ? 'Mother' : 'Father');
-            const transitionFromParent = (weekNumber - 1) % 2 === 0 ? startingParent :
+        // Handle weekly exchanges - on the same day of week as start date
+        const startDayOfWeek = startDate.getDay();
+        if (date.getDay() === startDayOfWeek && daysSinceStart > 0 && daysSinceStart % 7 === 0) {
+            // This is an exchange day (same day of week as start, and a multiple of 7 days later)
+            const exchangeNumber = daysSinceStart / 7;
+            const transitionFromParent = (exchangeNumber - 1) % 2 === 0 ? startingParent :
                                         (startingParent === 'Father' ? 'Mother' : 'Father');
+            const transitionToParent = exchangeNumber % 2 === 0 ? startingParent : 
+                                      (startingParent === 'Father' ? 'Mother' : 'Father');
             
             const colorClass = this.getTransitionColorClass(transitionFromParent, transitionToParent);
             return {
@@ -811,13 +813,15 @@ class SummerBreak {
             };
         }
 
-        // Handle two-week exchanges (every other Sunday at start time, except start date)
-        if (date.getDay() === 0 && daysSinceStart > 0 && daysSinceStart % 14 === 0) { // Every 2nd Sunday
-            // The parent we're transitioning TO is determined by the two-week period number
-            const transitionToParent = twoWeekPeriod % 2 === 0 ? startingParent : 
-                                      (startingParent === 'Father' ? 'Mother' : 'Father');
-            const transitionFromParent = (twoWeekPeriod - 1) % 2 === 0 ? startingParent :
+        // Handle two-week exchanges - on the same day of week as start date, every 14 days
+        const startDayOfWeek = startDate.getDay();
+        if (date.getDay() === startDayOfWeek && daysSinceStart > 0 && daysSinceStart % 14 === 0) {
+            // This is an exchange day (same day of week as start, and a multiple of 14 days later)
+            const exchangeNumber = daysSinceStart / 14;
+            const transitionFromParent = (exchangeNumber - 1) % 2 === 0 ? startingParent :
                                         (startingParent === 'Father' ? 'Mother' : 'Father');
+            const transitionToParent = exchangeNumber % 2 === 0 ? startingParent : 
+                                      (startingParent === 'Father' ? 'Mother' : 'Father');
             
             const colorClass = this.getTransitionColorClass(transitionFromParent, transitionToParent);
             return {

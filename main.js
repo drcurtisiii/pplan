@@ -367,15 +367,31 @@ class TimesharingCalendar {
         });
         scheduleHTML += '</tr></thead><tbody>';
         
-        // Week 1 row
+        // Calculate the first Sunday on or after the start date
+        const firstSunday = new Date(this.startDate);
+        const daysUntilSunday = (7 - startDayOfWeek) % 7;
+        if (daysUntilSunday > 0) {
+            firstSunday.setDate(firstSunday.getDate() + daysUntilSunday);
+        }
+        
+        // Week 1 row - show the week containing the first Sunday
         scheduleHTML += `
             <tr>
                 <td style="border: 1px solid #333; padding: 8px; font-weight: bold; background: #f9f9f9;">Week One</td>
         `;
         
-        for (let i = 0; i < 7; i++) {
-            const dayOfWeekIndex = (startDayOfWeek + i) % 7;
-            const schedule = this.regularSchedule[i];
+        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+            // Calculate which day in the 14-day cycle this corresponds to
+            const daysFromStart = daysUntilSunday + dayOfWeek - 7;
+            
+            // Always show the schedule, even for days before start
+            // Use modulo to wrap negative numbers correctly
+            let scheduleIndex = daysFromStart % 14;
+            if (scheduleIndex < 0) {
+                scheduleIndex += 14;
+            }
+            
+            const schedule = this.regularSchedule[scheduleIndex];
             const statusText = this.getStatusDisplayText(schedule.status);
             const timeText = schedule.status.includes('-->') ? `<br><small>${DateUtils.formatTime(schedule.time)}</small>` : '';
             
@@ -387,15 +403,17 @@ class TimesharingCalendar {
         }
         scheduleHTML += '</tr>';
         
-        // Week 2 row
+        // Week 2 row - the following week
         scheduleHTML += `
             <tr>
                 <td style="border: 1px solid #333; padding: 8px; font-weight: bold; background: #f9f9f9;">Week Two</td>
         `;
         
-        for (let i = 7; i < 14; i++) {
-            const dayOfWeekIndex = (startDayOfWeek + i) % 7;
-            const schedule = this.regularSchedule[i];
+        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+            // Calculate which day in the 14-day cycle this corresponds to
+            const daysFromStart = daysUntilSunday + dayOfWeek;
+            const scheduleIndex = daysFromStart % 14;
+            const schedule = this.regularSchedule[scheduleIndex];
             const statusText = this.getStatusDisplayText(schedule.status);
             const timeText = schedule.status.includes('-->') ? `<br><small>${DateUtils.formatTime(schedule.time)}</small>` : '';
             
@@ -1075,8 +1093,9 @@ class TimesharingCalendar {
         } else if (tabId === 'summer' && this.holidays && this.holidays.summerBreak) {
             this.generateSummerBreakForm();
         } else if (tabId === 'custom' && this.customHolidayManager) {
-            this.customHolidayManager.initializeTab();
-        } else {
+			// This will show all existing custom holidays when the tab is clicked
+			this.customHolidayManager.updateCustomHolidaysList();
+		} else {
             console.log('🔍 Tab switched to:', tabId, 'Available holidays:', Object.keys(this.holidays || {}));
         }
     }
@@ -1369,141 +1388,151 @@ class TimesharingCalendar {
         return `${hour12}:${minutes} ${ampm}`;
     }
 
-    updateOvernightStats() {
-        const startDate = new Date(this.startDate);
-        const endDate = new Date(startDate);
-        endDate.setFullYear(startDate.getFullYear() + 1);
-        
-        let fatherNights = 0;
-        let motherNights = 0;
-        
-        const currentDate = new Date(startDate);
-        while (currentDate < endDate) {
-            // Check for holidays first (in priority order - same as calendar display)
-            let holidayInfo = null;
-            
-            if (this.holidays) {
-                // Check custom holidays first (highest priority)
-                if (!holidayInfo && this.customHolidayManager && this.customHolidayManager.getInfoForDate) {
-                    holidayInfo = this.customHolidayManager.getInfoForDate(currentDate);
-                }
-                
-                // Check Mother's Day (only if no other holiday is active)
-                if (!holidayInfo && this.holidays.mothersDay && this.holidays.mothersDay.getInfoForDate) {
-                    holidayInfo = this.holidays.mothersDay.getInfoForDate(currentDate);
-                }
-                
-                // Check Father's Day (only if no other holiday is active)
-                if (!holidayInfo && this.holidays.fathersDay && this.holidays.fathersDay.getInfoForDate) {
-                    holidayInfo = this.holidays.fathersDay.getInfoForDate(currentDate);
-                }
-                
-                // Check Spring Break
-                if (!holidayInfo && this.holidays.springBreak && this.holidays.springBreak.getInfoForDate) {
-                    holidayInfo = this.holidays.springBreak.getInfoForDate(currentDate);
-                }
-                
-                // Check Easter Break (only if no other holiday is active)
-                if (!holidayInfo && this.holidays.easterBreak && this.holidays.easterBreak.getInfoForDate) {
-                    holidayInfo = this.holidays.easterBreak.getInfoForDate(currentDate);
-                }
-                
-                // Check Memorial Day Break (only if no other holiday is active)
-                if (!holidayInfo && this.holidays.memorialDayBreak && this.holidays.memorialDayBreak.getInfoForDate) {
-                    holidayInfo = this.holidays.memorialDayBreak.getInfoForDate(currentDate);
-                }
-                
-                // Check Independence Day (only if no other holiday is active)
-                if (!holidayInfo && this.holidays.independenceDay && this.holidays.independenceDay.getInfoForDate) {
-                    holidayInfo = this.holidays.independenceDay.getInfoForDate(currentDate);
-                }
-                
-                // Check Summer Break (only if no other holiday is active)
-                if (!holidayInfo && this.holidays.summerBreak && this.holidays.summerBreak.getInfoForDate) {
-                    holidayInfo = this.holidays.summerBreak.getInfoForDate(currentDate);
-                }
-                
-                // Check Thanksgiving Break (only if no other holiday is active)
-                if (!holidayInfo && this.holidays.thanksgivingBreak && this.holidays.thanksgivingBreak.getInfoForDate) {
-                    holidayInfo = this.holidays.thanksgivingBreak.getInfoForDate(currentDate);
-                }
-                
-                // Check Christmas Break (only if no other holiday is active)
-                if (!holidayInfo && this.holidays.christmasBreak && this.holidays.christmasBreak.getInfoForDate) {
-                    holidayInfo = this.holidays.christmasBreak.getInfoForDate(currentDate);
-                }
-            }
-            
-            // Determine who has the child for this night
-            let parentForNight = null;
-            
-            if (holidayInfo) {
-                // Handle summer vacation period model specially (shows regular schedule with asterisk)
-                if (this.holidays.summerBreak && this.holidays.summerBreak.config.type === 'vacation-period' && 
-                    holidayInfo.icon === '*') {
-                    // Use regular schedule for vacation period model
-                    const regularSchedule = this.getScheduleForDate(currentDate);
-                    parentForNight = regularSchedule.status.includes('Fx') ? 'Father' : 'Mother';
-                } else {
-                    // Parse holiday status text to determine parent
-                    const statusText = holidayInfo.statusText || '';
-                    if (statusText.includes('With Father') || statusText.includes('To Father')) {
-                        parentForNight = 'Father';
-                    } else if (statusText.includes('With Mother') || statusText.includes('To Mother')) {
-                        parentForNight = 'Mother';
-                    } else if (statusText.includes('Custom Summer')) {
-                        // Handle custom summer schedule
-                        if (this.holidays.summerBreak && this.holidays.summerBreak.config.type === 'custom') {
-                            // For custom summer, we need to calculate based on the overnight allocation
-                            const summerStartDate = this.holidays.summerBreak.config.startDate;
-                            const summerEndDate = this.holidays.summerBreak.config.endDate;
-                            const customOvernightsParent = this.holidays.summerBreak.config.customOvernightsParent;
-                            const customOvernightsCount = this.holidays.summerBreak.config.customOvernightsCount;
-                            
-                            if (summerStartDate && summerEndDate) {
-                                const totalSummerDays = Math.floor((summerEndDate - summerStartDate) / (1000 * 60 * 60 * 24));
-                                const daysSinceStart = Math.floor((currentDate - summerStartDate) / (1000 * 60 * 60 * 24));
-                                
-                                // Simple allocation: give the first N days to the specified parent
-                                if (daysSinceStart < customOvernightsCount) {
-                                    parentForNight = customOvernightsParent;
-                                } else {
-                                    parentForNight = customOvernightsParent === 'Father' ? 'Mother' : 'Father';
-                                }
-                            } else {
-                                // Fallback to regular schedule
-                                const regularSchedule = this.getScheduleForDate(currentDate);
-                                parentForNight = regularSchedule.status.includes('Fx') ? 'Father' : 'Mother';
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Use regular schedule
-                const regularSchedule = this.getScheduleForDate(currentDate);
-                parentForNight = regularSchedule.status.includes('Fx') ? 'Father' : 'Mother';
-            }
-            
-            // Count the overnight
-            if (parentForNight === 'Father') {
-                fatherNights++;
-            } else if (parentForNight === 'Mother') {
-                motherNights++;
-            }
-            
-            // Move to next day
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-        
-        // Calculate percentages
-        const totalNights = fatherNights + motherNights;
-        const fatherPercent = totalNights > 0 ? Math.round((fatherNights / totalNights) * 100) : 0;
-        const motherPercent = totalNights > 0 ? Math.round((motherNights / totalNights) * 100) : 0;
-        
-        // Update display
-        const statsEl = document.getElementById('overnightStats');
-        statsEl.textContent = `Approx. Overnights (Year 1): Father: ${fatherPercent}% (${fatherNights} days) | Mother: ${motherPercent}% (${motherNights} days)`;
-    }
+    // In main.js, replace the updateOvernightStats method with this cleaner version:
+
+	updateOvernightStats() {
+		const startDate = new Date(this.startDate);
+		const endDate = new Date(startDate);
+		endDate.setFullYear(startDate.getFullYear() + 1);
+		
+		let fatherNights = 0;
+		let motherNights = 0;
+		let holidayNights = 0;
+		
+		// For debugging
+		let debugInfo = {
+			regularFather: 0,
+			regularMother: 0,
+			holidayFather: 0,
+			holidayMother: 0
+		};
+		
+		const currentDate = new Date(startDate);
+		
+		while (currentDate < endDate) {
+			// Check for holidays first
+			let holidayInfo = null;
+			
+			if (this.holidays) {
+				// Check all holidays in priority order
+				if (!holidayInfo && this.customHolidayManager) {
+					holidayInfo = this.customHolidayManager.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.mothersDay) {
+					holidayInfo = this.holidays.mothersDay.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.fathersDay) {
+					holidayInfo = this.holidays.fathersDay.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.springBreak) {
+					holidayInfo = this.holidays.springBreak.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.easterBreak) {
+					holidayInfo = this.holidays.easterBreak.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.memorialDayBreak) {
+					holidayInfo = this.holidays.memorialDayBreak.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.independenceDay) {
+					holidayInfo = this.holidays.independenceDay.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.summerBreak) {
+					holidayInfo = this.holidays.summerBreak.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.thanksgivingBreak) {
+					holidayInfo = this.holidays.thanksgivingBreak.getInfoForDate(currentDate);
+				}
+				if (!holidayInfo && this.holidays.christmasBreak) {
+					holidayInfo = this.holidays.christmasBreak.getInfoForDate(currentDate);
+				}
+			}
+			
+			if (holidayInfo) {
+				// Holiday day - determine parent from status
+				holidayNights++;
+				const statusText = holidayInfo.statusText || '';
+				
+				// Special case for vacation period summer
+				if (holidayInfo.icon === '*') {
+					// Use regular schedule
+					const regularSchedule = this.getScheduleForDate(currentDate);
+					if (regularSchedule.status.includes('Fx')) {
+						fatherNights++;
+						debugInfo.regularFather++;
+					} else {
+						motherNights++;
+						debugInfo.regularMother++;
+					}
+				} else if (statusText.includes('With Father') || statusText.includes('To Father')) {
+					fatherNights++;
+					debugInfo.holidayFather++;
+				} else if (statusText.includes('With Mother') || statusText.includes('To Mother')) {
+					motherNights++;
+					debugInfo.holidayMother++;
+				} else if (statusText.includes('Custom Summer')) {
+					// Handle custom summer
+					if (this.holidays.summerBreak && this.holidays.summerBreak.config.type === 'custom') {
+						const config = this.holidays.summerBreak.config;
+						const summerStart = new Date(config.startDate);
+						const daysSinceStart = Math.floor((currentDate - summerStart) / (1000 * 60 * 60 * 24));
+						
+						if (daysSinceStart < config.customOvernightsCount) {
+							if (config.customOvernightsParent === 'Father') {
+								fatherNights++;
+								debugInfo.holidayFather++;
+							} else {
+								motherNights++;
+								debugInfo.holidayMother++;
+							}
+						} else {
+							if (config.customOvernightsParent === 'Father') {
+								motherNights++;
+								debugInfo.holidayMother++;
+							} else {
+								fatherNights++;
+								debugInfo.holidayFather++;
+							}
+						}
+					}
+				}
+			} else {
+				// Regular schedule day
+				const regularSchedule = this.getScheduleForDate(currentDate);
+				if (regularSchedule.status.includes('Fx')) {
+					fatherNights++;
+					debugInfo.regularFather++;
+				} else {
+					motherNights++;
+					debugInfo.regularMother++;
+				}
+			}
+			
+			currentDate.setDate(currentDate.getDate() + 1);
+		}
+		
+		// Debug output
+		console.log('Overnight calculation debug:', {
+			totalDays: fatherNights + motherNights,
+			fatherTotal: fatherNights,
+			motherTotal: motherNights,
+			holidayDays: holidayNights,
+			breakdown: debugInfo
+		});
+		
+		// Calculate percentages
+		const totalNights = fatherNights + motherNights;
+		const fatherPercent = totalNights > 0 ? Math.round((fatherNights / totalNights) * 100) : 0;
+		const motherPercent = totalNights > 0 ? Math.round((motherNights / totalNights) * 100) : 0;
+		
+		// Update display
+		const statsEl = document.getElementById('overnightStats');
+		
+		if (Math.abs(fatherPercent - motherPercent) <= 1) {
+			statsEl.textContent = `Approx. Overnights: 50/50 Equal Timesharing (Father: ${fatherNights} days/year | Mother: ${motherNights} days/year)`;
+		} else {
+			statsEl.textContent = `Approx. Overnights: Father: ${fatherPercent}% (${fatherNights} days/year) | Mother: ${motherPercent}% (${motherNights} days/year)`;
+		}
+	}
 }
 
 // Initialize the application when the page loads

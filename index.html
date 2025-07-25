@@ -14,10 +14,10 @@
             <input type="text" class="case-input" id="caseName" placeholder="Enter case name (e.g., Smith v. Jones)" value="Smith v. Jones">
             
             <!-- A2: Overnight stats -->
-            <div class="overnight-stats" id="overnightStats">
-                Calculating overnight percentages...
-            </div>
-            
+            <div class="overnight-stats" id="overnightStats" title="Calculated as 2-year average to account for alternating holidays">
+				Calculating overnight percentages...
+			</div>
+				
             <!-- B1: Schedule Start Date label -->
             <div class="section1-date-label">
                 📅 Schedule Start Date
@@ -57,7 +57,7 @@
                         <button class="tab-button tab-small" data-tab="easter">🐰 Easter</button>
                         <button class="tab-button tab-small" data-tab="memorial">🎖️ Memorial Day</button>
                         <button class="tab-button tab-small" data-tab="independence">🎆 Independence Day</button>
-                        <button class="tab-button tab-small" data-tab="custom" id="addCustomHoliday">➕ Add Holiday</button>
+                        <button class="tab-button tab-small" data-tab="custom">🎯 Custom Holidays</button>
                     </div>
 
                     <!-- Tab Contents -->
