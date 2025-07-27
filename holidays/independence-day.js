@@ -11,7 +11,8 @@ class IndependenceDay {
             firstHalfParent: 'Father',
             firstHalfYears: 'Even',
             secondHalfParent: 'Mother',
-            secondHalfYears: 'Even'
+            secondHalfYears: 'Even',
+            additionalNotes: '' // Add this field for notes
         };
         this.initializeDefaults();
     }
@@ -29,15 +30,23 @@ class IndependenceDay {
     }
 
     generateForm() {
+        const hasNotes = this.config.additionalNotes && this.config.additionalNotes.trim() !== '';
+        const notesButtonText = hasNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+        
         return `
             <div class="holiday-config">
                 <!-- Holiday Observed Checkbox -->
                 <div class="config-row">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="independenceObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
-                        <span class="checkmark"></span>
-                        Holiday is Observed
-                    </label>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="independenceObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
+                            <span class="checkmark"></span>
+                            Holiday is Observed
+                        </label>
+                        <button id="independenceNotesBtn" class="section1-button" style="padding: 6px 12px; font-size: 12px;">
+                            ${notesButtonText}
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Start Date and Time -->
@@ -116,6 +125,14 @@ class IndependenceDay {
             });
         }
 
+        // Notes button
+        const notesBtn = document.getElementById('independenceNotesBtn');
+        if (notesBtn) {
+            notesBtn.addEventListener('click', () => {
+                this.openNotesModal();
+            });
+        }
+
         // Start date - auto-calculate other dates
         const startDateEl = document.getElementById('independenceStartDate');
         if (startDateEl) {
@@ -191,6 +208,38 @@ class IndependenceDay {
             }
         });
     }
+
+    openNotesModal() {
+		if (window.timesharingCalendar && window.timesharingCalendar.openNotesModal) {
+			// Use the same pattern as other holidays
+			window.timesharingCalendar.currentNotesContext = 'holiday-independenceDay';
+			window.timesharingCalendar.openNotesModal(
+				'holiday-independenceDay',
+				"Independence Day - Additional Notes",
+				this.config.additionalNotes
+			);
+			
+			// Override save function to handle this holiday's notes
+			const originalSave = window.timesharingCalendar.saveNotesFromModal;
+			window.timesharingCalendar.saveNotesFromModal = () => {
+				const textarea = document.getElementById('notesTextarea');
+				if (textarea) {
+					this.config.additionalNotes = textarea.value;
+					this.updateNotesButton();
+					this.onConfigChange();
+				}
+				window.timesharingCalendar.closeNotesModal();
+				window.timesharingCalendar.saveNotesFromModal = originalSave;
+			};
+		}
+	}
+
+updateNotesButton() {
+    const notesBtn = document.getElementById('independenceNotesBtn');
+    if (notesBtn) {
+        notesBtn.textContent = this.config.additionalNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+    }
+}
 
     onConfigChange() {
         // Notify the main calendar to update

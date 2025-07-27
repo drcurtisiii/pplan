@@ -29,7 +29,10 @@ class SummerBreak {
             // For custom model
             customInstructions: '',
             customOvernightsParent: 'Father',
-            customOvernightsCount: 35
+            customOvernightsCount: 35,
+            
+            // Additional notes
+            additionalNotes: '' // Add this field for notes
         };
         this.initializeDefaults();
     }
@@ -81,15 +84,23 @@ class SummerBreak {
     }
 
     generateForm() {
+        const hasNotes = this.config.additionalNotes && this.config.additionalNotes.trim() !== '';
+        const notesButtonText = hasNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+        
         return `
             <div class="holiday-config">
                 <!-- Holiday Observed Checkbox -->
                 <div class="config-row">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="summerObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
-                        <span class="checkmark"></span>
-                        Summer Break is Observed
-                    </label>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="summerObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
+                            <span class="checkmark"></span>
+                            Summer Break is Observed
+                        </label>
+                        <button id="summerNotesBtn" class="section1-button" style="padding: 6px 12px; font-size: 12px;">
+                            ${notesButtonText}
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Summer Break Type Selection -->
@@ -355,6 +366,14 @@ class SummerBreak {
             });
         }
 
+        // Notes button
+        const notesBtn = document.getElementById('summerNotesBtn');
+        if (notesBtn) {
+            notesBtn.addEventListener('click', () => {
+                this.openNotesModal();
+            });
+        }
+
         // Summer type dropdown
         const typeEl = document.getElementById('summerType');
         if (typeEl) {
@@ -405,6 +424,38 @@ class SummerBreak {
         // Setup type-specific listeners
         this.setupTypeSpecificListeners();
     }
+
+    openNotesModal() {
+		if (window.timesharingCalendar && window.timesharingCalendar.openNotesModal) {
+			// Use the same pattern as other holidays
+			window.timesharingCalendar.currentNotesContext = 'holiday-summerBreak';
+			window.timesharingCalendar.openNotesModal(
+				'holiday-summerBreak',
+				"Summer Break - Additional Notes",
+				this.config.additionalNotes
+			);
+			
+			// Override save function to handle this holiday's notes
+			const originalSave = window.timesharingCalendar.saveNotesFromModal;
+			window.timesharingCalendar.saveNotesFromModal = () => {
+				const textarea = document.getElementById('notesTextarea');
+				if (textarea) {
+					this.config.additionalNotes = textarea.value;
+					this.updateNotesButton();
+					this.onConfigChange();
+				}
+				window.timesharingCalendar.closeNotesModal();
+				window.timesharingCalendar.saveNotesFromModal = originalSave;
+			};
+		}
+	}
+
+	updateNotesButton() {
+		const notesBtn = document.getElementById('summerNotesBtn');
+		if (notesBtn) {
+			notesBtn.textContent = this.config.additionalNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+		}
+	}
 
     updateTypeSpecificConfig() {
         const container = document.getElementById('summerTypeConfig');

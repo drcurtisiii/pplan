@@ -11,7 +11,8 @@ class SpringBreak {
             firstHalfParent: 'Mother',
             firstHalfYears: 'Even',
             secondHalfParent: 'Father',
-            secondHalfYears: 'Even'
+            secondHalfYears: 'Even',
+            additionalNotes: '' // Added for additional notes
         };
         this.initializeDefaults();
     }
@@ -30,13 +31,16 @@ class SpringBreak {
     generateForm() {
         return `
             <div class="holiday-config">
-                <!-- Holiday Observed Checkbox -->
-                <div class="config-row">
+                <!-- Holiday Observed Checkbox and Notes Button -->
+                <div class="config-row" style="display: flex; justify-content: space-between; align-items: center;">
                     <label class="checkbox-container">
                         <input type="checkbox" id="springObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
                         <span class="checkmark"></span>
                         Holiday is Observed
                     </label>
+                    <button type="button" class="section1-button" id="springNotesBtn" style="font-size: 12px; padding: 6px 12px;">
+                        ${this.config.additionalNotes ? '📝 View/Edit Notes' : '➕ Add Notes'}
+                    </button>
                 </div>
                 
                 <!-- Start Date and Time -->
@@ -106,87 +110,126 @@ class SpringBreak {
     }
 
     setupEventListeners() {
-        // Observed checkbox
-        const observedEl = document.getElementById('springObserved');
-        if (observedEl) {
-            observedEl.addEventListener('change', (e) => {
-                this.config.observed = e.target.checked;
-                this.onConfigChange();
-            });
+		// Notes button
+		const notesBtn = document.getElementById('springNotesBtn');
+		if (notesBtn) {
+			notesBtn.addEventListener('click', () => {
+				this.openNotesModal();
+			});
+		}
+
+		// Observed checkbox
+		const observedEl = document.getElementById('springObserved');
+		if (observedEl) {
+			observedEl.addEventListener('change', (e) => {
+				this.config.observed = e.target.checked;
+				this.onConfigChange();
+			});
+		}
+
+		// Start date - auto-calculate other dates
+		const startDateEl = document.getElementById('springStartDate');
+		if (startDateEl) {
+			startDateEl.addEventListener('change', (e) => {
+				const newStartDate = new Date(e.target.value + 'T00:00:00');
+				this.config.startDate = newStartDate;
+				
+				// Recalculate exchange and end dates
+				const exchangeDate = DateUtils.getNextWednesday(newStartDate);
+				const endDate = DateUtils.getNextMonday(exchangeDate);
+				
+				this.config.exchangeDate = exchangeDate;
+				this.config.endDate = endDate;
+				
+				// Update form fields
+				document.getElementById('springExchangeDate').value = DateUtils.dateToISOString(exchangeDate);
+				document.getElementById('springEndDate').value = DateUtils.dateToISOString(endDate);
+				
+				this.onConfigChange();
+			});
+		}
+
+		// Exchange date - auto-calculate end date
+		const exchangeDateEl = document.getElementById('springExchangeDate');
+		if (exchangeDateEl) {
+			exchangeDateEl.addEventListener('change', (e) => {
+				const newExchangeDate = new Date(e.target.value + 'T00:00:00');
+				this.config.exchangeDate = newExchangeDate;
+				
+				// Recalculate end date
+				const endDate = DateUtils.getNextMonday(newExchangeDate);
+				this.config.endDate = endDate;
+				
+				document.getElementById('springEndDate').value = DateUtils.dateToISOString(endDate);
+				
+				this.onConfigChange();
+			});
+		}
+
+		// End date
+		const endDateEl = document.getElementById('springEndDate');
+		if (endDateEl) {
+			endDateEl.addEventListener('change', (e) => {
+				this.config.endDate = new Date(e.target.value + 'T00:00:00');
+				this.onConfigChange();
+			});
+		}
+
+		// Time fields
+		['springStartTime', 'springExchangeTime', 'springEndTime'].forEach(id => {
+			const el = document.getElementById(id);
+			if (el) {
+				el.addEventListener('change', (e) => {
+					const field = id.replace('spring', '');
+					const configField = field.charAt(0).toLowerCase() + field.slice(1);
+					this.config[configField] = e.target.value;
+					this.onConfigChange();
+				});
+			}
+		});
+
+		// Dropdown fields
+		['springFirstHalfParent', 'springFirstHalfYears', 'springSecondHalfParent', 'springSecondHalfYears'].forEach(id => {
+			const el = document.getElementById(id);
+			if (el) {
+				el.addEventListener('change', (e) => {
+					const field = id.replace('spring', '').charAt(0).toLowerCase() + id.replace('spring', '').slice(1);
+					this.config[field] = e.target.value;
+					this.onConfigChange();
+				});
+			}
+		});
+	}
+
+    openNotesModal() {
+		if (window.timesharingCalendar && window.timesharingCalendar.openNotesModal) {
+			window.timesharingCalendar.currentNotesContext = 'holiday-springBreak';
+			window.timesharingCalendar.openNotesModal(
+				'holiday-springBreak',
+				'Spring Break - Additional Notes',
+				this.config.additionalNotes
+			);
+			
+			// Override save function to handle this holiday's notes
+			const originalSave = window.timesharingCalendar.saveNotesFromModal;
+			window.timesharingCalendar.saveNotesFromModal = () => {
+				const textarea = document.getElementById('notesTextarea');
+				if (textarea) {
+					this.config.additionalNotes = textarea.value;
+					this.updateNotesButton();
+					this.onConfigChange();
+				}
+				window.timesharingCalendar.closeNotesModal();
+				window.timesharingCalendar.saveNotesFromModal = originalSave;
+			};
+		}
+	}
+
+    updateNotesButton() {
+        const notesBtn = document.getElementById('springNotesBtn');
+        if (notesBtn) {
+            notesBtn.textContent = this.config.additionalNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
         }
-
-        // Start date - auto-calculate other dates
-        const startDateEl = document.getElementById('springStartDate');
-        if (startDateEl) {
-            startDateEl.addEventListener('change', (e) => {
-                const newStartDate = new Date(e.target.value + 'T00:00:00');
-                this.config.startDate = newStartDate;
-                
-                // Recalculate exchange and end dates
-                const exchangeDate = DateUtils.getNextWednesday(newStartDate);
-                const endDate = DateUtils.getNextMonday(exchangeDate);
-                
-                this.config.exchangeDate = exchangeDate;
-                this.config.endDate = endDate;
-                
-                // Update form fields
-                document.getElementById('springExchangeDate').value = DateUtils.dateToISOString(exchangeDate);
-                document.getElementById('springEndDate').value = DateUtils.dateToISOString(endDate);
-                
-                this.onConfigChange();
-            });
-        }
-
-        // Exchange date - auto-calculate end date
-        const exchangeDateEl = document.getElementById('springExchangeDate');
-        if (exchangeDateEl) {
-            exchangeDateEl.addEventListener('change', (e) => {
-                const newExchangeDate = new Date(e.target.value + 'T00:00:00');
-                this.config.exchangeDate = newExchangeDate;
-                
-                // Recalculate end date
-                const endDate = DateUtils.getNextMonday(newExchangeDate);
-                this.config.endDate = endDate;
-                
-                document.getElementById('springEndDate').value = DateUtils.dateToISOString(endDate);
-                
-                this.onConfigChange();
-            });
-        }
-
-        // End date
-        const endDateEl = document.getElementById('springEndDate');
-        if (endDateEl) {
-            endDateEl.addEventListener('change', (e) => {
-                this.config.endDate = new Date(e.target.value + 'T00:00:00');
-                this.onConfigChange();
-            });
-        }
-
-        // Time fields
-        ['springStartTime', 'springExchangeTime', 'springEndTime'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('change', (e) => {
-                    const field = id.replace('spring', '');
-                    const configField = field.charAt(0).toLowerCase() + field.slice(1);
-                    this.config[configField] = e.target.value;
-                    this.onConfigChange();
-                });
-            }
-        });
-
-        // Dropdown fields
-        ['springFirstHalfParent', 'springFirstHalfYears', 'springSecondHalfParent', 'springSecondHalfYears'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('change', (e) => {
-                    const field = id.replace('spring', '').charAt(0).toLowerCase() + id.replace('spring', '').slice(1);
-                    this.config[field] = e.target.value;
-                    this.onConfigChange();
-                });
-            }
-        });
     }
 
     onConfigChange() {
@@ -332,7 +375,8 @@ class SpringBreak {
             ...this.config,
             startDate: this.config.startDate ? this.config.startDate.toISOString() : null,
             exchangeDate: this.config.exchangeDate ? this.config.exchangeDate.toISOString() : null,
-            endDate: this.config.endDate ? this.config.endDate.toISOString() : null
+            endDate: this.config.endDate ? this.config.endDate.toISOString() : null,
+            additionalNotes: this.config.additionalNotes // Include notes in export
         };
     }
 
@@ -342,8 +386,11 @@ class SpringBreak {
                 ...configData,
                 startDate: configData.startDate ? new Date(configData.startDate) : null,
                 exchangeDate: configData.exchangeDate ? new Date(configData.exchangeDate) : null,
-                endDate: configData.endDate ? new Date(configData.endDate) : null
+                endDate: configData.endDate ? new Date(configData.endDate) : null,
+                additionalNotes: configData.additionalNotes || '' // Import notes with fallback
             };
+            // Update the notes button when importing
+            this.updateNotesButton();
         }
     }
 }

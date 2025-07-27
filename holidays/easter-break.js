@@ -11,7 +11,8 @@ class EasterBreak {
             firstHalfParent: 'Mother',
             firstHalfYears: 'Odd',
             secondHalfParent: 'Father',
-            secondHalfYears: 'Odd'
+            secondHalfYears: 'Odd',
+            additionalNotes: '' // Added for additional notes
         };
         this.initializeDefaults();
     }
@@ -31,13 +32,16 @@ class EasterBreak {
     generateForm() {
         return `
             <div class="holiday-config">
-                <!-- Holiday Observed Checkbox -->
-                <div class="config-row">
+                <!-- Holiday Observed Checkbox and Notes Button -->
+                <div class="config-row" style="display: flex; justify-content: space-between; align-items: center;">
                     <label class="checkbox-container">
                         <input type="checkbox" id="easterObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
                         <span class="checkmark"></span>
                         Holiday is Observed
                     </label>
+                    <button type="button" class="section1-button" id="easterNotesBtn" style="font-size: 12px; padding: 6px 12px;">
+                        ${this.config.additionalNotes ? '📝 View/Edit Notes' : '➕ Add Notes'}
+                    </button>
                 </div>
                 
                 <!-- Start Date and Time -->
@@ -107,6 +111,14 @@ class EasterBreak {
     }
 
     setupEventListeners() {
+        // Notes button
+        const notesBtn = document.getElementById('easterNotesBtn');
+        if (notesBtn) {
+            notesBtn.addEventListener('click', () => {
+                this.openNotesModal();
+            });
+        }
+
         // Observed checkbox
         const observedEl = document.getElementById('easterObserved');
         if (observedEl) {
@@ -190,6 +202,37 @@ class EasterBreak {
                 });
             }
         });
+    }
+
+    openNotesModal() {
+        if (window.timesharingCalendar && window.timesharingCalendar.openNotesModal) {
+            window.timesharingCalendar.currentNotesContext = 'holiday-easterBreak';
+            window.timesharingCalendar.openNotesModal(
+                'holiday-easterBreak',
+                'Easter Weekend - Additional Notes',
+                this.config.additionalNotes
+            );
+            
+            // Override save function to handle this holiday's notes
+            const originalSave = window.timesharingCalendar.saveNotesFromModal;
+            window.timesharingCalendar.saveNotesFromModal = () => {
+                const textarea = document.getElementById('notesTextarea');
+                if (textarea) {
+                    this.config.additionalNotes = textarea.value;
+                    this.updateNotesButton();
+                    this.onConfigChange();
+                }
+                window.timesharingCalendar.closeNotesModal();
+                window.timesharingCalendar.saveNotesFromModal = originalSave;
+            };
+        }
+    }
+
+    updateNotesButton() {
+        const notesBtn = document.getElementById('easterNotesBtn');
+        if (notesBtn) {
+            notesBtn.textContent = this.config.additionalNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+        }
     }
 
     onConfigChange() {
@@ -335,7 +378,8 @@ class EasterBreak {
             ...this.config,
             startDate: this.config.startDate ? this.config.startDate.toISOString() : null,
             exchangeDate: this.config.exchangeDate ? this.config.exchangeDate.toISOString() : null,
-            endDate: this.config.endDate ? this.config.endDate.toISOString() : null
+            endDate: this.config.endDate ? this.config.endDate.toISOString() : null,
+            additionalNotes: this.config.additionalNotes // Include notes in export
         };
     }
 
@@ -345,8 +389,11 @@ class EasterBreak {
                 ...configData,
                 startDate: configData.startDate ? new Date(configData.startDate) : null,
                 exchangeDate: configData.exchangeDate ? new Date(configData.exchangeDate) : null,
-                endDate: configData.endDate ? new Date(configData.endDate) : null
+                endDate: configData.endDate ? new Date(configData.endDate) : null,
+                additionalNotes: configData.additionalNotes || '' // Import notes with fallback
             };
+            // Update the notes button when importing
+            this.updateNotesButton();
         }
     }
 }

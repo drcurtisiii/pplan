@@ -11,7 +11,8 @@ class ChristmasBreak {
             firstHalfParent: 'Mother',
             firstHalfYears: 'Odd',
             secondHalfParent: 'Father',
-            secondHalfYears: 'Odd'
+            secondHalfYears: 'Odd',
+            additionalNotes: '' // Added for additional notes
         };
         this.initializeDefaults();
     }
@@ -60,13 +61,16 @@ class ChristmasBreak {
     generateForm() {
         return `
             <div class="holiday-config">
-                <!-- Holiday Observed Checkbox -->
-                <div class="config-row">
+                <!-- Holiday Observed Checkbox and Notes Button -->
+                <div class="config-row" style="display: flex; justify-content: space-between; align-items: center;">
                     <label class="checkbox-container">
                         <input type="checkbox" id="christmasObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
                         <span class="checkmark"></span>
                         Holiday is Observed
                     </label>
+                    <button type="button" class="section1-button" id="christmasNotesBtn" style="font-size: 12px; padding: 6px 12px;">
+                        ${this.config.additionalNotes ? '📝 View/Edit Notes' : '➕ Add Notes'}
+                    </button>
                 </div>
                 
                 <!-- Start Date and Time -->
@@ -136,6 +140,14 @@ class ChristmasBreak {
     }
 
     setupEventListeners() {
+        // Notes button
+        const notesBtn = document.getElementById('christmasNotesBtn');
+        if (notesBtn) {
+            notesBtn.addEventListener('click', () => {
+                this.openNotesModal();
+            });
+        }
+
         // Observed checkbox
         const observedEl = document.getElementById('christmasObserved');
         if (observedEl) {
@@ -219,6 +231,37 @@ class ChristmasBreak {
                 });
             }
         });
+    }
+
+    openNotesModal() {
+        if (window.timesharingCalendar && window.timesharingCalendar.openNotesModal) {
+            window.timesharingCalendar.currentNotesContext = 'holiday-christmasBreak';
+            window.timesharingCalendar.openNotesModal(
+                'holiday-christmasBreak',
+                'Christmas Break - Additional Notes',
+                this.config.additionalNotes
+            );
+            
+            // Override save function to handle this holiday's notes
+            const originalSave = window.timesharingCalendar.saveNotesFromModal;
+            window.timesharingCalendar.saveNotesFromModal = () => {
+                const textarea = document.getElementById('notesTextarea');
+                if (textarea) {
+                    this.config.additionalNotes = textarea.value;
+                    this.updateNotesButton();
+                    this.onConfigChange();
+                }
+                window.timesharingCalendar.closeNotesModal();
+                window.timesharingCalendar.saveNotesFromModal = originalSave;
+            };
+        }
+    }
+
+    updateNotesButton() {
+        const notesBtn = document.getElementById('christmasNotesBtn');
+        if (notesBtn) {
+            notesBtn.textContent = this.config.additionalNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+        }
     }
 
     onConfigChange() {
@@ -364,7 +407,8 @@ class ChristmasBreak {
             ...this.config,
             startDate: this.config.startDate ? this.config.startDate.toISOString() : null,
             exchangeDate: this.config.exchangeDate ? this.config.exchangeDate.toISOString() : null,
-            endDate: this.config.endDate ? this.config.endDate.toISOString() : null
+            endDate: this.config.endDate ? this.config.endDate.toISOString() : null,
+            additionalNotes: this.config.additionalNotes // Include notes in export
         };
     }
 
@@ -374,8 +418,11 @@ class ChristmasBreak {
                 ...configData,
                 startDate: configData.startDate ? new Date(configData.startDate) : null,
                 exchangeDate: configData.exchangeDate ? new Date(configData.exchangeDate) : null,
-                endDate: configData.endDate ? new Date(configData.endDate) : null
+                endDate: configData.endDate ? new Date(configData.endDate) : null,
+                additionalNotes: configData.additionalNotes || '' // Import notes with fallback
             };
+            // Update the notes button when importing
+            this.updateNotesButton();
         }
     }
 }

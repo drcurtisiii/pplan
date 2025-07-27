@@ -14,11 +14,15 @@ class CustomHoliday {
             firstHalfYears: config.firstHalfYears || 'All',
             secondHalfParent: config.secondHalfParent || 'Father',
             secondHalfYears: config.secondHalfYears || 'All',
+            additionalNotes: config.additionalNotes || '', // Add this field for notes
             ...config
         };
     }
 
     generateModalForm() {
+        const hasNotes = this.config.additionalNotes && this.config.additionalNotes.trim() !== '';
+        const notesButtonText = hasNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+        
         return `
             <div class="holiday-config">
                 <!-- Holiday Name -->
@@ -27,13 +31,18 @@ class CustomHoliday {
                     <input type="text" id="customName" class="config-text-input" value="${this.config.name}" placeholder="Enter holiday name" maxlength="50">
                 </div>
                 
-                <!-- Holiday Observed Checkbox -->
+                <!-- Holiday Observed Checkbox with Notes Button -->
                 <div class="config-row">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="customObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
-                        <span class="checkmark"></span>
-                        Holiday is Observed
-                    </label>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="customObserved" class="holiday-checkbox" ${this.config.observed ? 'checked' : ''}>
+                            <span class="checkmark"></span>
+                            Holiday is Observed
+                        </label>
+                        <button id="customNotesBtn" class="section1-button" style="padding: 6px 12px; font-size: 12px;">
+                            ${notesButtonText}
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Start Date and Time -->
@@ -102,6 +111,45 @@ class CustomHoliday {
         `;
     }
 
+    setupModalEventListeners() {
+        // Notes button listener
+        const notesBtn = document.getElementById('customNotesBtn');
+        if (notesBtn) {
+            notesBtn.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent form submission
+                this.openNotesModal();
+            });
+        }
+    }
+
+    openNotesModal() {
+		if (window.timesharingCalendar && window.timesharingCalendar.openNotesModal) {
+			window.timesharingCalendar.currentNotesContext = `holiday-custom-${this.id}`;
+			window.timesharingCalendar.openNotesModal(
+				`holiday-custom-${this.id}`,
+				`${this.config.name} - Additional Notes`,
+				this.config.additionalNotes
+			);
+			
+			// Override save function
+			const originalSave = window.timesharingCalendar.saveNotesFromModal;
+			window.timesharingCalendar.saveNotesFromModal = () => {
+				const textarea = document.getElementById('notesTextarea');
+				if (textarea) {
+					this.config.additionalNotes = textarea.value;
+					// Update button text
+					const notesBtn = document.getElementById('customNotesBtn');
+					if (notesBtn) {
+						const hasNotes = textarea.value && textarea.value.trim() !== '';
+						notesBtn.textContent = hasNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+					}
+				}
+				window.timesharingCalendar.closeNotesModal();
+				window.timesharingCalendar.saveNotesFromModal = originalSave;
+			};
+		}
+	}
+
     updateFromModal() {
         // Get values from modal form
         const nameEl = document.getElementById('customName');
@@ -133,6 +181,7 @@ class CustomHoliday {
         if (firstHalfYearsEl) this.config.firstHalfYears = firstHalfYearsEl.value;
         if (secondHalfParentEl) this.config.secondHalfParent = secondHalfParentEl.value;
         if (secondHalfYearsEl) this.config.secondHalfYears = secondHalfYearsEl.value;
+        // Note: additionalNotes is already updated via the notes modal callback
     }
 
     getInfoForDate(date) {

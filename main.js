@@ -3,6 +3,8 @@ class TimesharingCalendar {
         this.caseName = 'Party v. Party - ___________ County - Case Number:  ___________';
         this.startDate = new Date();
         this.regularSchedule = this.createDefaultSchedule();
+        this.regularScheduleNotes = ''; // Additional notes for regular schedule
+        this.currentNotesContext = null; // Track which notes we're editing
         this.init();
     }
 
@@ -35,6 +37,182 @@ class TimesharingCalendar {
         
         // Initialize holidays after everything else is working
         this.initializeHolidays();
+        
+        // Initialize notes modal system
+        this.initializeNotesModal();
+    }
+
+    initializeNotesModal() {
+		// Modal elements
+		const modal = document.getElementById('notesModal');
+		const closeBtn = document.getElementById('closeNotesModal');
+		const saveBtn = document.getElementById('saveNotesBtn');
+		const cancelBtn = document.getElementById('cancelNotesBtn');
+		const textarea = document.getElementById('notesTextarea');
+
+		console.log('🔍 Initializing Notes Modal:');
+		console.log('Modal element:', modal);
+		console.log('Close button:', closeBtn);
+		console.log('Save button:', saveBtn);
+		console.log('Cancel button:', cancelBtn);
+		console.log('Textarea:', textarea);
+
+		if (closeBtn) {
+			closeBtn.addEventListener('click', () => {
+				console.log('❌ Close button clicked');
+				this.closeNotesModal();
+			});
+		} else {
+			console.log('⚠️ Close button not found!');
+		}
+
+		if (cancelBtn) {
+			cancelBtn.addEventListener('click', () => {
+				console.log('🚫 Cancel button clicked');
+				this.closeNotesModal();
+			});
+		} else {
+			console.log('⚠️ Cancel button not found!');
+		}
+
+		if (saveBtn) {
+			saveBtn.addEventListener('click', () => {
+				console.log('💾 Save button clicked');
+				this.saveNotesFromModal();
+			});
+		} else {
+			console.log('⚠️ Save button not found!');
+		}
+
+		// Close modal when clicking outside
+		if (modal) {
+			modal.addEventListener('click', (e) => {
+				console.log('🖱️ Modal background clicked', e.target === modal);
+				if (e.target === modal) {
+					this.closeNotesModal();
+				}
+			});
+		}
+	}
+
+    openNotesModal(context, title, currentNotesOrCallback) {
+		this.currentNotesContext = context;
+		const modal = document.getElementById('notesModal');
+		const modalTitle = document.getElementById('notesModalTitle');
+		const textarea = document.getElementById('notesTextarea');
+
+		if (modalTitle) {
+			modalTitle.textContent = title;
+		}
+
+		// Check if third parameter is a function (callback) or string (notes)
+		if (typeof currentNotesOrCallback === 'function') {
+			// It's a callback function - don't set it as the textarea value!
+			this.currentNotesCallback = currentNotesOrCallback;
+			textarea.value = ''; // Clear the textarea
+		} else {
+			// It's the actual notes content
+			this.currentNotesCallback = null;
+			textarea.value = currentNotesOrCallback || '';
+		}
+
+		if (modal) {
+			modal.style.display = 'block';
+			document.body.style.overflow = 'hidden';
+			
+			// Make sure close functionality works
+			this.setupModalEventListeners();
+			
+			// Focus on textarea after modal opens
+			setTimeout(() => textarea && textarea.focus(), 100);
+		}
+	}
+
+	setupModalEventListeners() {
+		const modal = document.getElementById('notesModal');
+		const closeBtn = document.getElementById('closeNotesModal');
+		const saveBtn = document.getElementById('saveNotesBtn');
+		const cancelBtn = document.getElementById('cancelNotesBtn');
+		
+		// Clear existing listeners by cloning
+		if (closeBtn) {
+			const newCloseBtn = closeBtn.cloneNode(true);
+			closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+			newCloseBtn.addEventListener('click', () => this.closeNotesModal());
+		}
+		
+		if (cancelBtn) {
+			const newCancelBtn = cancelBtn.cloneNode(true);
+			cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+			newCancelBtn.addEventListener('click', () => this.closeNotesModal());
+		}
+		
+		if (saveBtn) {
+			const newSaveBtn = saveBtn.cloneNode(true);
+			saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+			newSaveBtn.addEventListener('click', () => this.saveNotesFromModal());
+		}
+		
+		// Modal background click
+		const modalClickHandler = (e) => {
+			if (e.target === modal) {
+				this.closeNotesModal();
+			}
+		};
+		modal.removeEventListener('click', modalClickHandler);
+		modal.addEventListener('click', modalClickHandler);
+	}
+
+	saveNotesFromModal() {
+		const textarea = document.getElementById('notesTextarea');
+		if (!textarea) return;
+
+		const notes = textarea.value;
+
+		// If we have a callback, use it
+		if (this.currentNotesCallback) {
+			this.currentNotesCallback(notes);
+		} else {
+			// Otherwise, handle based on context
+			if (this.currentNotesContext === 'regular') {
+				this.regularScheduleNotes = notes;
+			} else if (this.currentNotesContext && this.currentNotesContext.startsWith('holiday-')) {
+				// This will be handled by individual holiday classes
+			}
+		}
+
+		this.closeNotesModal();
+	}
+
+    closeNotesModal() {
+		console.log('🔴 closeNotesModal called');
+		const modal = document.getElementById('notesModal');
+		if (modal) {
+			console.log('✅ Modal found, hiding it');
+			modal.style.display = 'none';
+			document.body.style.overflow = '';
+		} else {
+			console.log('❌ Modal not found!');
+		}
+		this.currentNotesContext = null;
+	}
+
+    saveNotesFromModal() {
+        const textarea = document.getElementById('notesTextarea');
+        if (!textarea || !this.currentNotesContext) return;
+
+        const notes = textarea.value;
+
+        // Save notes based on context
+        if (this.currentNotesContext === 'regular') {
+            this.regularScheduleNotes = notes;
+        } else if (this.currentNotesContext.startsWith('holiday-')) {
+            // Handle holiday notes (to be implemented in holiday files)
+            const holidayType = this.currentNotesContext.replace('holiday-', '');
+            // This will be handled by individual holiday classes
+        }
+
+        this.closeNotesModal();
     }
 
     initializeHolidays() {
@@ -42,12 +220,19 @@ class TimesharingCalendar {
             this.holidays = {};
             
             // Initialize Spring Break if available
-            if (typeof SpringBreak !== 'undefined') {
-                this.holidays.springBreak = new SpringBreak();
-                console.log('✅ Spring Break loaded');
-            } else {
-                console.log('❌ SpringBreak class not found');
-            }
+            // Initialize Spring Break if available
+			if (typeof SpringBreak !== 'undefined') {
+				console.log('🔍 SpringBreak class found, creating instance...');
+				try {
+					this.holidays.springBreak = new SpringBreak();
+					console.log('✅ Spring Break loaded successfully');
+					console.log('Spring Break config:', this.holidays.springBreak.config);
+				} catch (error) {
+					console.error('❌ Spring Break initialization error:', error);
+				}
+			} else {
+				console.log('❌ SpringBreak class not found');
+			}
             
             // Initialize Thanksgiving Break if available
             if (typeof ThanksgivingBreak !== 'undefined') {
@@ -162,6 +347,27 @@ class TimesharingCalendar {
         
         const startDayOfWeek = this.startDate.getDay();
         
+        // Add title and notes button
+        const headerRow = document.createElement('div');
+        headerRow.style.display = 'flex';
+        headerRow.style.justifyContent = 'space-between';
+        headerRow.style.alignItems = 'center';
+        headerRow.style.marginBottom = '15px';
+        
+        const notesButton = document.createElement('button');
+        notesButton.className = 'section1-button';
+        notesButton.textContent = this.regularScheduleNotes ? '📝 View/Edit Notes' : '➕ Add Notes';
+        notesButton.style.fontSize = '12px';
+        notesButton.style.padding = '6px 12px';
+        notesButton.onclick = () => {
+            this.openNotesModal('regular', 'Regular Schedule - Additional Notes', this.regularScheduleNotes);
+        };
+        
+        headerRow.appendChild(document.createElement('div')); // Empty div for spacing
+        headerRow.appendChild(notesButton);
+        container.appendChild(headerRow);
+        
+        // Generate schedule grid
         for (let i = 0; i < 14; i++) {
             const dayRow = document.createElement('div');
             dayRow.className = 'day-row';
@@ -230,11 +436,13 @@ class TimesharingCalendar {
             const day = parseInt(e.target.dataset.day);
             if (e.target.classList.contains('status-select')) {
                 this.regularSchedule[day].status = e.target.value;
+                this.generateCalendar();
+                this.updateOvernightStats();
             } else if (e.target.classList.contains('time-input')) {
                 this.regularSchedule[day].time = e.target.value;
+                this.generateCalendar();
+                this.updateOvernightStats();
             }
-            this.generateCalendar();
-            this.updateOvernightStats();
         });
 
         // Tab navigation
@@ -317,6 +525,12 @@ class TimesharingCalendar {
         }, 1000);
     }
 
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     generatePrintContent() {
         const activeHolidays = this.getActiveHolidays();
         
@@ -335,6 +549,12 @@ class TimesharingCalendar {
                     <div class="print-schedule-section">
                         <h3>Regular Schedule (2-Week Rotation)</h3>
                         ${this.generatePrintSchedule()}
+                        ${this.regularScheduleNotes ? `
+                            <div style="margin-top: 15px; padding: 10px; background: #f0f8ff; border: 1px solid #cce5ff; border-radius: 4px;">
+                                <strong>Additional Notes:</strong>
+                                <div style="margin-top: 5px; white-space: pre-wrap; font-size: 12px;">${this.escapeHtml(this.regularScheduleNotes)}</div>
+                            </div>
+                        ` : ''}
                     </div>
                     
                     <div class="print-holidays-section">
@@ -350,85 +570,85 @@ class TimesharingCalendar {
     }
 
     generatePrintSchedule() {
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const startDayOfWeek = this.startDate.getDay();
-        
-        // Create table with days of week as columns
-        let scheduleHTML = `
-            <table class="print-schedule-table" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                <thead>
-                    <tr>
-                        <th style="border: 1px solid #333; padding: 8px; background: #f5f5f5; font-weight: bold;"></th>
-        `;
-        
-        // Add day headers
-        dayNames.forEach(day => {
-            scheduleHTML += `<th style="border: 1px solid #333; padding: 8px; background: #f5f5f5; font-weight: bold;">${day}</th>`;
-        });
-        scheduleHTML += '</tr></thead><tbody>';
-        
-        // Calculate the first Sunday on or after the start date
-        const firstSunday = new Date(this.startDate);
-        const daysUntilSunday = (7 - startDayOfWeek) % 7;
-        if (daysUntilSunday > 0) {
-            firstSunday.setDate(firstSunday.getDate() + daysUntilSunday);
-        }
-        
-        // Week 1 row - show the week containing the first Sunday
-        scheduleHTML += `
-            <tr>
-                <td style="border: 1px solid #333; padding: 8px; font-weight: bold; background: #f9f9f9;">Week One</td>
-        `;
-        
-        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-            // Calculate which day in the 14-day cycle this corresponds to
-            const daysFromStart = daysUntilSunday + dayOfWeek - 7;
-            
-            // Always show the schedule, even for days before start
-            // Use modulo to wrap negative numbers correctly
-            let scheduleIndex = daysFromStart % 14;
-            if (scheduleIndex < 0) {
-                scheduleIndex += 14;
-            }
-            
-            const schedule = this.regularSchedule[scheduleIndex];
-            const statusText = this.getStatusDisplayText(schedule.status);
-            const timeText = schedule.status.includes('-->') ? `<br><small>${DateUtils.formatTime(schedule.time)}</small>` : '';
-            
-            scheduleHTML += `
-                <td style="border: 1px solid #333; padding: 8px; text-align: center;">
-                    ${statusText}${timeText}
-                </td>
-            `;
-        }
-        scheduleHTML += '</tr>';
-        
-        // Week 2 row - the following week
-        scheduleHTML += `
-            <tr>
-                <td style="border: 1px solid #333; padding: 8px; font-weight: bold; background: #f9f9f9;">Week Two</td>
-        `;
-        
-        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-            // Calculate which day in the 14-day cycle this corresponds to
-            const daysFromStart = daysUntilSunday + dayOfWeek;
-            const scheduleIndex = daysFromStart % 14;
-            const schedule = this.regularSchedule[scheduleIndex];
-            const statusText = this.getStatusDisplayText(schedule.status);
-            const timeText = schedule.status.includes('-->') ? `<br><small>${DateUtils.formatTime(schedule.time)}</small>` : '';
-            
-            scheduleHTML += `
-                <td style="border: 1px solid #333; padding: 8px; text-align: center;">
-                    ${statusText}${timeText}
-                </td>
-            `;
-        }
-        scheduleHTML += '</tr>';
-        
-        scheduleHTML += '</tbody></table>';
-        
-        return scheduleHTML;
-    }
+		const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+		const startDayOfWeek = this.startDate.getDay();
+		
+		// Create table with days of week as columns
+		let scheduleHTML = `
+			<table class="print-schedule-table" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+				<thead>
+					<tr>
+						<th style="border: 1px solid #333; padding: 8px; background: #f5f5f5; font-weight: bold;"></th>
+		`;
+		
+		// Add day headers
+		dayNames.forEach(day => {
+			scheduleHTML += `<th style="border: 1px solid #333; padding: 8px; background: #f5f5f5; font-weight: bold;">${day}</th>`;
+		});
+		scheduleHTML += '</tr></thead><tbody>';
+		
+		// Calculate the first Sunday on or after the start date
+		const firstSunday = new Date(this.startDate);
+		const daysUntilSunday = (7 - startDayOfWeek) % 7;
+		if (daysUntilSunday > 0) {
+			firstSunday.setDate(firstSunday.getDate() + daysUntilSunday);
+		}
+		
+		// Week 1 row - show the week containing the first Sunday
+		scheduleHTML += `
+			<tr>
+				<td style="border: 1px solid #333; padding: 8px; font-weight: bold; background: #f9f9f9;">Week One</td>
+		`;
+		
+		for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+			// Calculate which day in the 14-day cycle this corresponds to
+			const daysFromStart = daysUntilSunday + dayOfWeek - 7;
+			
+			// Always show the schedule, even for days before start
+			// Use modulo to wrap negative numbers correctly
+			let scheduleIndex = daysFromStart % 14;
+			if (scheduleIndex < 0) {
+				scheduleIndex += 14;
+			}
+			
+			const schedule = this.regularSchedule[scheduleIndex];
+			const statusText = this.getStatusDisplayText(schedule.status);
+			const timeText = schedule.status.includes('-->') ? `<br><small>${DateUtils.formatTime(schedule.time)}</small>` : '';
+			
+			scheduleHTML += `
+				<td style="border: 1px solid #333; padding: 8px; text-align: center;">
+					${statusText}${timeText}
+				</td>
+			`;
+		}
+		scheduleHTML += '</tr>';
+		
+		// Week 2 row - the following week
+		scheduleHTML += `
+			<tr>
+				<td style="border: 1px solid #333; padding: 8px; font-weight: bold; background: #f9f9f9;">Week Two</td>
+		`;
+		
+		for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+			// Calculate which day in the 14-day cycle this corresponds to
+			const daysFromStart = daysUntilSunday + dayOfWeek;
+			const scheduleIndex = daysFromStart % 14;
+			const schedule = this.regularSchedule[scheduleIndex];
+			const statusText = this.getStatusDisplayText(schedule.status);
+			const timeText = schedule.status.includes('-->') ? `<br><small>${DateUtils.formatTime(schedule.time)}</small>` : '';
+			
+			scheduleHTML += `
+				<td style="border: 1px solid #333; padding: 8px; text-align: center;">
+					${statusText}${timeText}
+				</td>
+			`;
+		}
+		scheduleHTML += '</tr>';
+		
+		scheduleHTML += '</tbody></table>';
+		
+		return scheduleHTML;
+	}
 
     getActiveHolidays() {
         const activeHolidays = [];
@@ -547,6 +767,17 @@ class TimesharingCalendar {
         
         // Current year details
         html += this.generateCurrentHolidayDetails(holiday);
+        
+        // Add additional notes if they exist
+        if (config.additionalNotes) {
+            html += `
+                <div style="margin-top: 10px; padding: 10px; background: #f0f8ff; border: 1px solid #cce5ff; border-radius: 4px;">
+                    <strong>Additional Notes:</strong>
+                    <div style="margin-top: 5px; white-space: pre-wrap; font-size: 12px;">${this.escapeHtml(config.additionalNotes)}</div>
+                </div>
+            `;
+        }
+        
         html += '</div>';
         
         return html;
@@ -614,6 +845,16 @@ class TimesharingCalendar {
             case 'custom':
                 html += this.generateCustomSummerPrint(config);
                 break;
+        }
+        
+        // Add additional notes if they exist
+        if (config.additionalNotes) {
+            html += `
+                <div style="margin-top: 10px; padding: 10px; background: #f0f8ff; border: 1px solid #cce5ff; border-radius: 4px;">
+                    <strong>Additional Notes:</strong>
+                    <div style="margin-top: 5px; white-space: pre-wrap; font-size: 12px;">${this.escapeHtml(config.additionalNotes)}</div>
+                </div>
+            `;
         }
         
         html += '</div>';
@@ -740,8 +981,19 @@ class TimesharingCalendar {
                         <div><strong>2nd Half:</strong> ${config.secondHalfParent} in ${config.secondHalfYears} years</div>
                     </div>
                 </div>
-            </div>
         `;
+        
+        // Add additional notes if they exist
+        if (config.additionalNotes) {
+            html += `
+                <div style="margin-top: 10px; padding: 10px; background: #f0f8ff; border: 1px solid #cce5ff; border-radius: 4px;">
+                    <strong>Additional Notes:</strong>
+                    <div style="margin-top: 5px; white-space: pre-wrap; font-size: 12px;">${this.escapeHtml(config.additionalNotes)}</div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
         
         return html;
     }
@@ -880,7 +1132,8 @@ class TimesharingCalendar {
             caseName: this.caseName,
             startDate: this.startDate.toISOString(),
             regularSchedule: this.regularSchedule,
-            version: "2.0",
+            regularScheduleNotes: this.regularScheduleNotes, // Include notes in save
+            version: "2.1", // Updated version to indicate notes support
             timestamp: new Date().toISOString()
         };
 
@@ -962,6 +1215,7 @@ class TimesharingCalendar {
             this.caseName = calendarData.caseName;
             this.startDate = new Date(calendarData.startDate);
             this.regularSchedule = calendarData.regularSchedule;
+            this.regularScheduleNotes = calendarData.regularScheduleNotes || ''; // Load notes
             
             // Load holiday configurations if they exist and holidays are initialized
             if (calendarData.holidays && this.holidays) {
@@ -1387,8 +1641,6 @@ class TimesharingCalendar {
         const hour12 = hour % 12 || 12;
         return `${hour12}:${minutes} ${ampm}`;
     }
-
-    // In main.js, replace the updateOvernightStats method with this cleaner version:
 
 	updateOvernightStats() {
 		const startDate = new Date(this.startDate);

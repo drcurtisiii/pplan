@@ -3,6 +3,7 @@ class CustomHolidayManager {
         this.customHolidays = new Map(); // Use Map to store holidays by ID
         this.maxHolidays = 6;
         this.currentEditingId = null;
+        this.currentEditingHoliday = null; // Store the current holiday being edited
         this.initializeModal();
         this.bindEvents();
     }
@@ -89,10 +90,13 @@ class CustomHolidayManager {
         
         // Create a temporary holiday for the form
         const tempHoliday = new CustomHoliday(this.getNextAvailableId());
+        this.currentEditingHoliday = tempHoliday;
         
         const modalBody = document.getElementById('modalBody');
         if (modalBody) {
             modalBody.innerHTML = tempHoliday.generateModalForm();
+            // Set up event listeners for the form, including notes button
+            tempHoliday.setupModalEventListeners();
         }
         
         this.showModal();
@@ -103,6 +107,7 @@ class CustomHolidayManager {
         if (!holiday) return;
 
         this.currentEditingId = holidayId;
+        this.currentEditingHoliday = holiday;
         const modalTitle = document.getElementById('modalTitle');
         const deleteBtn = document.getElementById('deleteCustomHoliday');
         
@@ -112,6 +117,8 @@ class CustomHolidayManager {
         const modalBody = document.getElementById('modalBody');
         if (modalBody) {
             modalBody.innerHTML = holiday.generateModalForm();
+            // Set up event listeners for the form, including notes button
+            holiday.setupModalEventListeners();
         }
         
         this.showModal();
@@ -132,6 +139,7 @@ class CustomHolidayManager {
             document.body.style.overflow = ''; // Restore scrolling
         }
         this.currentEditingId = null;
+        this.currentEditingHoliday = null;
     }
 
     saveCustomHoliday() {
@@ -223,24 +231,6 @@ class CustomHolidayManager {
         }
     }
 
-    deleteCustomHoliday() {
-        if (!this.currentEditingId) return;
-
-        const holiday = this.customHolidays.get(this.currentEditingId);
-        if (!holiday) return;
-
-        if (confirm(`Are you sure you want to delete "${holiday.config.name}"?`)) {
-            this.customHolidays.delete(this.currentEditingId);
-            this.updateCustomHolidaysList();
-            this.closeModal();
-            
-            // Notify main calendar to update
-            if (window.timesharingCalendar && window.timesharingCalendar.generateCalendar) {
-                window.timesharingCalendar.generateCalendar();
-            }
-        }
-    }
-
     updateCustomHolidaysList() {
         const container = document.getElementById('customHolidaysList');
         if (!container) return;
@@ -259,6 +249,8 @@ class CustomHolidayManager {
             
             const statusIndicator = holiday.config.observed ? '✅' : '❌';
             const statusText = holiday.config.observed ? 'Active' : 'Inactive';
+            const hasNotes = holiday.config.additionalNotes && holiday.config.additionalNotes.trim() !== '';
+            const notesIndicator = hasNotes ? ' 📝' : '';
             
             let dateRange = '';
             if (holiday.config.startDate && holiday.config.endDate) {
@@ -274,7 +266,7 @@ class CustomHolidayManager {
             holidayItem.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div class="custom-holiday-name">${statusIndicator} ${holiday.config.name}</div>
+                        <div class="custom-holiday-name">${statusIndicator} ${holiday.config.name}${notesIndicator}</div>
                         <div class="custom-holiday-dates">${dateRange} • ${statusText}</div>
                     </div>
                     <div style="font-size: 18px;">🎯</div>
